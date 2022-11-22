@@ -1,34 +1,7 @@
-# Node.js React Web App to Linux on Azure
-# Build a Node.js React app and deploy it to Azure as a Linux web app.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
-
-variables:
-
-  # Azure Resource Manager connection created during pipeline creation
-  azureSubscription: 'e8df3a2e-41bc-4133-b152-6e5666f3a4bc'
-
-  # Web app name
-  webAppName: 'Lavarel-Example-App'
-
-  # Environment name
-  environmentName: 'Lavarel-Example-App'
-
-  # Agent VM image name
-  vmImageName: 'ubuntu-latest'
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# GitHub recommends pinning actions to a commit SHA.
-# To get a newer version, you will need to update the SHA.
-# You can also reference a tag or branch, but the action may change without warning.
-
 name: Build and deploy PHP app to Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: $(webAppName)   # set this to your application's name
+  AZURE_WEBAPP_NAME: 'Lavarel-Example-App'   # set this to your application's name
   AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
   PHP_VERSION: '8.x'                  # set this to the PHP version to use
 
