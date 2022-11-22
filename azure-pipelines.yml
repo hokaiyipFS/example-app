@@ -16,27 +16,38 @@ variables:
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
 
-name: Build and deploy PHP app to Azure Web App - yourappservicename
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Build and deploy PHP app to Azure Web App
+
+env:
+  AZURE_WEBAPP_NAME: $(webAppName)   # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
+  PHP_VERSION: '8.x'                  # set this to the PHP version to use
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          # NOTE: Change this to the version of PHP needed (ex. 7.x, 8.x)
-          php-version: '8.x'
+          php-version: ${{ env.PHP_VERSION }}
 
       - name: Check if composer.json exists
         id: check_files
@@ -44,12 +55,27 @@ jobs:
         with:
           files: 'composer.json'
 
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Set up dependency caching for faster installs
+        uses: actions/cache@v3
+        if: steps.check_files.outputs.files_exists == 'true'
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
         run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
 
       - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: php-app
           path: .
@@ -59,19 +85,18 @@ jobs:
     needs: build
     environment:
       name: 'production'
-      url: $
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: php-app
 
       - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@0b651ed7546ecfc75024011f76944cb9b381ef1e
         with:
-          app-name: $(webAppName)
-          slot-name: 'production'
-          publish-profile: $
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
